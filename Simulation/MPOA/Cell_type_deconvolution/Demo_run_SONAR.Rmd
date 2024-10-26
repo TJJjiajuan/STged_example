@@ -1,0 +1,223 @@
+
+## Import library
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#remove(list= ls())
+library(SONAR)
+library(here)
+library(Matrix)
+library(data.table)
+library(Seurat)
+library(matlabr)
+library(R.matlab)
+
+```
+
+# The code
+```{r}
+
+data_process <- function(sc_exp, sc_label, spot_exp, spot_loc,
+                         gene_det_in_min_cells_per = 0.01, expression_threshold = 0,
+                         nUMI = 100, verbose = FALSE, depthscale = 1e5, clean.only = TRUE) {
+  # Ensure correct dimensions of inputs
+  if(ncol(sc_exp) != length(sc_label)) {
+    stop("Mismatch between number of cells in sc_exp and length of sc_label.")
+  }
+  if(ncol(spot_exp) != nrow(spot_loc)) {
+    stop("Mismatch between number of spots in spot_exp and number of rows in spot_loc.")
+  }
+  
+  # Process scRNA-seq data
+  sc_matrix <- cleanCounts(sc_exp, gene_det_in_min_cells_per = gene_det_in_min_cells_per,
+                           expression_threshold = expression_threshold, nUMI = nUMI,
+                           verbose = verbose, depthscale = depthscale, clean.only = clean.only)
+  sc_matrix <- as.matrix(sc_matrix)
+  ind <- match(colnames(sc_matrix), colnames(sc_exp))
+  sc_label <- sc_label[ind]
+  
+  # Process SRT data
+  st_matrix <- cleanCounts(spot_exp, gene_det_in_min_cells_per = gene_det_in_min_cells_per,
+                           expression_threshold = expression_threshold, nUMI = nUMI,
+                           verbose = verbose, depthscale = depthscale, clean.only = clean.only)
+  st_matrix <- as.matrix(st_matrix)
+  ind_sp <- match(colnames(st_matrix), colnames(spot_exp))
+  spot_loc <- spot_loc[ind_sp, ]
+  
+  # Find common genes between datasets
+  com_gene <- intersect(rownames(sc_matrix), rownames(st_matrix))
+  sc_exp <- sc_matrix[com_gene,]
+  st_exp <- st_matrix[com_gene,]
+  
+  # Re-check and filter by nUMI counts
+  index_sc <- colSums(sc_exp) >= nUMI
+  sc_exp_filter <- sc_exp[, index_sc]
+  sc_label_filter <- sc_label[index_sc]
+  
+  index_st <- colSums(st_exp) >= nUMI
+  st_exp_filter <- st_exp[, index_st]
+  spot_loc_filter <- spot_loc[index_st,]
+  
+  # Compile and return the database of cleaned data
+  database <- list(sc_exp = sc_exp_filter, sc_label = sc_label_filter,
+                   spot_exp = st_exp_filter, spot_loc = spot_loc_filter)
+  return(database)
+}
+
+
+cleanCounts <- function(counts, gene_det_in_min_cells_per = 0.01, expression_threshold = 0,
+                        nUMI = 100, verbose = FALSE, depthscale = 1, clean.only = FALSE) {
+  
+  if (!inherits(counts, "matrix")) stop("The 'counts' must be a matrix.")
+  n = ncol(counts)
+  if (verbose) message("Starting with ", n, " cells.")
+  
+  # Selecting genes detected in sufficient number of cells
+  sufficient_cells = rowSums(counts > expression_threshold) > gene_det_in_min_cells_per * n
+  counts = counts[sufficient_cells, ]
+  
+  # Filtering cells based on total UMI counts after gene filtering
+  sufficient_umi = colSums(counts) > nUMI
+  counts = counts[, sufficient_umi]
+  
+  if (clean.only) {
+    if (verbose) message("Matrix filtered without scaling. Dimension: ", dim(counts))
+    return(counts)
+  } else {
+    sf = colSums(counts) 
+    scaled_counts = log(sweep(counts, 2, sf, FUN = "/") * depthscale + 1)
+    if (verbose) message("Matrix scaled and log-transformed. Dimension: ", dim(scaled_counts))
+    return(scaled_counts)
+  }
+}
+
+```
+
+# Load data
+```{r}
+## load the 100 um2
+sim_data = readRDS( "../FN7_hash_mpoa_sim-29_ref01.Rds")
+
+## reference data information
+sc_exp = t(sim_data$ref_exp)
+sc_label =  sim_data$ref_label$Cell_class
+sc_label <- as.factor(sc_label)
+## spot data with differention resolution
+i = 1
+patch_size = c(100,50)[i]
+mpoa = sim_data$mpoa_list[[i]]$`-0.29`
+code_path <- file.path(here::here("core-code"), "/")
+
+
+spot_raw = rownames(mpoa$patchGexp)
+spots = paste0("spot",1:length(spot_raw))
+
+split_strings <- strsplit(spot_raw, "_")
+spot_loc <- do.call(rbind, lapply(split_strings, function(x) as.numeric(x)))
+spot_exp <- t(mpoa$patchGexp)[,spot_raw ]
+
+
+rownames(spot_loc)  = spots
+colnames(spot_exp) = spots
+
+
+database = data_process(sc_exp = sc_exp, 
+                        sc_label = sc_label , 
+                        spot_exp = spot_exp,
+                        spot_loc = as.data.frame(spot_loc),
+                        gene_det_in_min_cells_per = 0, expression_threshold = 0,
+                        nUMI = 100, verbose = FALSE, depthscale = 1e6, 
+                        clean.only = TRUE)
+
+
+```
+
+
+# Run sonar
+## Prepare the data the input data of the SONAR
+```{r}
+sc_exp <- database$sc_exp
+sc_label <-  droplevels(database$sc_label)
+spot_exp <- database$spot_exp
+spot_loc <- database$spot_loc
+colnames(spot_loc) <- c("x","y")
+
+sparse_sc_exp <- as(sc_exp, "sparseMatrix")
+sparse_spot_exp <- as(spot_exp, "sparseMatrix")
+
+## the reference scRNA-seq data
+cellnames <- colnames(sc_exp)
+cell_types <- as.factor(sc_label)
+names(cell_types) <- cellnames
+
+nUMI <- colSums(sc_exp)
+names(nUMI) <- colnames(sc_exp)
+nUMI_spot <- colSums(spot_exp)
+names(nUMI_spot) <- colnames(spot_exp)
+
+
+```
+
+## Processed of the input data of SONAR
+```{r message=FALSE, warning=FALSE}
+
+processed_input <- SONAR.preprocess(sc_count = sparse_sc_exp,
+                                    sc_cell_type = cell_types,
+                                    sc_nUMI = nUMI,
+                                    sp_coords = spot_loc,
+                                    sp_count = sparse_spot_exp,
+                                    sp_nUMI = nUMI_spot,
+                                    cores=1,spot_min_UMI =0)
+
+
+```
+
+
+## Calculate the distance matrix
+```{r message=FALSE, warning=FALSE}
+
+#deliver the preprocessed data to SONAR
+trans_data<-SONAR.deliver(processed_data=processed_input,path=code_path)
+temp<-dist(spot_loc)
+temp<-Matrix::Matrix(temp)
+temp[temp==0] <- NA
+mindist <- min(temp,na.rm = T)
+h <- 1.2*mindist
+
+```
+
+
+## Run SONAR
+```{r}
+#start deconvolution
+
+SONAR.deconvolute(fname = paste0(code_path,"/SONAR_main.m"),path=code_path,h,wait = TRUE)
+
+
+## if return 0, deconvolution has done
+```
+
+
+
+## Collect results
+```{r}
+
+SONAR.results <- readMat(paste(code_path,"SONAR_results.mat",sep = ""))
+
+SONAR.results <- SONAR.results$JIE
+
+u <- fread(paste0(code_path,"u.txt"))
+u[,1] <- NULL
+
+colnames(SONAR.results) <- colnames(u)
+spot_name <- read.table(file=paste0(code_path,"coord.txt"),sep=",")
+rownames(SONAR.results) <- rownames(spot_name)
+
+#Complete! SONAR.results is the final results
+result_path <- code_path
+
+write.table(SONAR.results,file = paste(result_path,paste0('SONAR.results_',patch_size,'um.txt'),sep=""),sep = ",")
+write.csv(SONAR.results,file = paste(result_path,paste0('SONAR.results_',patch_size,'um.csv')))
+
+
+```
+
+
