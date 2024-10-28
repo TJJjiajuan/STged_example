@@ -1,1 +1,1 @@
-reade
+Here, we present the benchmarking results for gene expression deconvolution, comparing the performance of the STged method with other approaches. These results are provided to facilitate reproduction of the primary findings in our manuscript.
