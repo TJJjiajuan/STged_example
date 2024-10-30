@@ -1,6 +1,7 @@
+# A tutorial with examples of the usage of STged
 
 For the STged toy example setup:
-### File Structure and Contents:
+## File Structure and Contents:
 1. **Code File Folder**:
    - **Benchmark File**: Contains the code for benchmark methods used in comparisons.
    - **Module File**: Holds the code for proposed module analyses specifically designed for STged applications on real data.
@@ -12,4 +13,8 @@ For the STged toy example setup:
 3. **Demo File Folder**:
    - Contains **code** and **demo files** for reproducing main and supplementary results from real data analyses in the STged study.
 
-This structure should allow straightforward access to necessary code and demos for both simulated and real data, facilitating reproducibility of STged analyses.
+## Tutorials
+1. **Simulation study**:
+- [seaFISH+ data `STged`](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_FISH+.html)
+- [seaFISH+ data `STged`](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_merfish.html)
+  
