@@ -17,14 +17,16 @@ The following folders contain all necessary code, data, and documentation to rep
 - Contains **code** and **demo files** for reproducing STged results in real data analyses, specifically tailored to the examples used in the main and supplementary results sections.
 
 ## Tutorials
-Detailed tutorials provide step-by-step guidance for running analyses on simulated and real data.
+Detailed tutorials provide step-by-step guidance on running analyses on simulated and real data.
 
-### 1. Simulation Studies
-- [seqFISH+ Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_FISH+.html): Demonstrates STged’s application on seqFISH+ simulated data.
-- [MERFISH Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_merfish.html): Demonstrates STged’s application on MERFISH simulated data.
+### Simulation Studies
+These tutorials demonstrate STged’s functionality on simulated datasets, providing insight into its performance in controlled settings.
+- **[seqFISH+ Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_FISH+.html)**: A demo showcasing STged applied to seqFISH+ data simulations.
+- **[MERFISH Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_merfish.html)**: A tutorial on applying STged to MERFISH simulated data.
 
-### 2. Real Data Studies
-- **mHVG/ctHVG Module Analysis** on human PDAC tissue: [Analysis Demo](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDACA_STged_mHVG.html)
-- **Cell Type Subpopulation Analysis** on human PDAC tissue: [Subpopulation Demo](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDACA_STged_subpopulation.html)
-- **Cell-Cell Communication Analysis** on human PDAC tissue: [Communication Demo](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDAC_STged_CC.html)
-- **Gene Expression Program Module** on mouse kidney tissue: [Program Demo](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_kidney_STged_downanalysis.html)
+### Real Data Studies
+Real data examples illustrate STged’s capabilities in practical applications, focusing on human PDAC tissue and mouse kidney tissue.
+- **[mHVG/ctHVG Module Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDACA_STged_mHVG.html)**: Analyzing mHVG and ctHVG in human PDAC tissue, focusing on identifying highly variable genes linked to cell types.
+- **[Cell Type Subpopulation Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDACA_STged_subpopulation.html)**: Identifying and analyzing cell subpopulations within human PDAC tissue.
+- **[Cell-Cell Communication Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDAC_STged_CC.html)**: Analyzing cell-cell communication dynamics in human PDAC tissue.
+- **[Gene Expression Program Module](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_kidney_STged_downanalysis.html)**: Gene expression analysis of mouse kidney tissue, showcasing spatial gene expression programs.
