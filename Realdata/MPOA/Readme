@@ -1,5 +1,0 @@
-We provide the context for processing MPOA tissue scRNA-seq data. 
-Below is a refined version of the code that handles barcode processing, expression matrix manipulation, 
-and cell label filtering, ensuring all steps are correctly implemented for scRNA-seq data analysis.
-
-The reference paper: Molecular, Spatial and Functional Single-Cell Profiling of the Hypothalamic Preoptic Region
