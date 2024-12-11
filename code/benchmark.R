@@ -1,4 +1,17 @@
-
+res_common_gene = function(estres, commgene){
+  
+  K = length(estres)
+  
+  for(i in 1:K){
+    
+    temp  =  estres[[i]][commgene,]
+    
+    estres[[i]] = temp
+  }
+  
+  
+  return(estres)
+}
 
 res_library_size_normaization = function(estres, depthscale = 1e6, log = TRUE ){
   
@@ -23,7 +36,7 @@ res_library_size_normaization = function(estres, depthscale = 1e6, log = TRUE ){
       
       temp[is.na(temp)] <- 0
       
-      estres[[i]] = temp
+      estres[[i]] = temp*depthscale
     } 
   }
   
@@ -172,57 +185,46 @@ sc_mu_est = function( sc_mu, beta, cutoff = 0.05){
   return(F_list) 
 }
 
-TCA_est<- function(spot_exp, beta = beta,C1 = NULL, C2 = NULL,
-                   parallel = TRUE, num_cores= 20) {
-  
-  tca.mdl <- tca(X = sqrt(spot_exp), W = beta, C1 = C1, C2 = C2,
-                 parallel = parallel,  num_cores = num_cores)
-  
-  Z_hat <- tensor(X = sqrt(spot_exp), tca.mdl)
-  
 
-  return(Z_hat)
+bMIND_est = function( spot_exp, ref_exp, beta,ncore = 1){
+  
+  #beta[beta<cutoff] = 0
+  cell_type = colnames(beta)
+  exp_bmind = bMIND(bulk = spot_exp, profile =  ref_exp, frac = beta,ncore=ncore)$A
+  
+  dims <- dim(exp_bmind) 
+  exp_mind_list <- vector("list", length = dims[2])
+  names(exp_mind_list) <- cell_type
+  
+  for (i in 1:dims[2]) {
+    exp_matrix <- exp_bmind[,  i,]
+    exp_mind_list[[i]] <- exp_matrix
+  }
+  
+  
+  return(exp_mind_list) 
 }
 
 
-ENIGMA_est <- function(spot_exp, sc_exp, sc_label, beta = NULL) {
+ENIGMA_est = function( spot_exp, ref_exp, beta){
   
-  cell_type <- sort(unique(sc_label))
-  egm =  create_ENIGMA(bulk= spot_exp,ref= sc_exp,
-                       ref_type = "sort",
-                       meta_ref = as.data.frame(sc_label))
-
+  cell_type = colnames(beta)
+  ENIGMA_trace.v <- cell_deconvolve_trace(O = spot_exp,
+                                          theta=beta,
+                                          R=ref_exp)
   
-  # Estimate cell-type proportions if beta is not provided
-  if (is.null(beta)) {
-
-    cat("Estimation of cell type proportion\n")
-
-    egm = get_cell_proportion(egm, method = "RLR")
-
-  } else {
-    egm@result_cell_proportion =beta
-  }
-  
-  # Perform deconvolution using ENIGMA
-  egm = ENIGMA_trace_norm(egm, model_tracker = TRUE,model_name = "log", preprocess = "log")
-  ENIGMA_trace.v = sce2array(egm,  norm_output = FALSE,model_name = "log")
-
-  # Extract dimensions from the result
-  dims <- dim(ENIGMA_trace.v )
-  # Initialize list to store results for each cell type
+  dims <- dim(ENIGMA_trace.v) 
   exp_ENIGMA_list <- vector("list", length = dims[3])
   names(exp_ENIGMA_list) <- cell_type
   
-  # Store each deconvolved matrix in the list
   for (i in 1:dims[3]) {
     exp_matrix <- ENIGMA_trace.v[, , i]
     exp_ENIGMA_list[[i]] <- exp_matrix
   }
   
-  return(exp_ENIGMA_list)
+  
+  return(exp_ENIGMA_list) 
 }
-
 
 
 spotdecon_est = function(srt_exp, beta, cutoff = 0.05){
@@ -273,27 +275,30 @@ corr.cal.spot <- function(F.est, F.true, beta.ind, row_filter = NULL) {
   F.est.all <- do.call(rbind, F.est.filtered)
   F.true.all <- do.call(rbind, F.true.filtered)
   beta.ind.all <- do.call(rbind, beta.ind.filtered)
-  epsilon = 1e-12
+  
   # Safe log function to handle small values and avoid issues
   safe_log <- function(x, base = 2) {
-    x[x < epsilon] <- epsilon # Replace very small values with a threshold to avoid log(0)
+    x[x < 1e-10] <- 1e-10  # Replace very small values with a threshold to avoid log(0)
     return(log(x, base = base))
   }
   
   # Calculate metrics for each column
   calc_metrics <- function(i) {
+    
     P <- F.est.all[, i][beta.ind.all[, i]]
     Q <- F.true.all[, i][beta.ind.all[, i]]
     
-    P_norm <- (P + epsilon) / sum(P + epsilon)
-    Q_norm <- (Q + epsilon) / sum(Q + epsilon)
-
     # Handle edge cases
     if (length(P) < 2 || length(Q) < 2 || any(is.na(P)) || any(is.na(Q)) || var(P) == 0 || var(Q) == 0) {
       return(rep(NA, 4))
     }
     
-    rmse <- sqrt(mean((P_norm - Q_norm) ^ 2, na.rm = TRUE))
+    rmse <- sqrt(mean((P - Q) ^ 2, na.rm = TRUE))
+    
+    # Normalize P and Q ONLY for Jensen-Shannon Divergence calculation
+    epsilon <- 1e-10  # Small value to avoid division by zero
+    P_norm <- (P + epsilon) / sum(P + epsilon)
+    Q_norm <- (Q + epsilon) / sum(Q + epsilon)
     
     # Calculate metrics without normalization (RMSE, Pearson, Cosine)
     pearson_corr <- cor(P_norm, Q_norm, use = "complete.obs")
@@ -319,54 +324,141 @@ corr.cal.spot <- function(F.est, F.true, beta.ind, row_filter = NULL) {
 }
 
 
-corr.cal.gene <- function(F.est, F.true, beta.ind) {
+save_spot_level_results <- function(cell_type_matrices, normalize = TRUE) {
   
-  # Validate input dimensions
-  if (length(F.est) != length(F.true) || length(F.est) != length(beta.ind)) {
-    stop("All input lists must have the same length.")
+  # Number of cell types (length of the list)
+  k <- length(cell_type_matrices)
+  
+  # Number of genes (rows) and spots (columns) in each matrix
+  p <- nrow(cell_type_matrices[[1]])
+  n <- ncol(cell_type_matrices[[1]])
+  
+  # Create a list to store spot-level matrices
+  spot_level_matrices <- vector("list", n)
+  
+  # Iterate over each spot
+  for (spot_idx in 1:n) {
+    # For each spot, extract the column from each cell type matrix
+    spot_matrix <- sapply(cell_type_matrices, function(mat) mat[, spot_idx])
+    
+    # Optionally normalize the spot matrix
+    if (normalize) {
+      # Normalize each row (gene expression) by the sum of that row across all cell types
+      spot_matrix <- spot_matrix/sum(spot_matrix)
+        #sweep(spot_matrix, 1, rowSums(spot_matrix), FUN = "/")
+      #spot_matrix[is.na(spot_matrix)] <- 0  # Handle any divisions by zero
+    }
+    
+    # Store the result as a p by k matrix (genes x cell types)
+    spot_level_matrices[[spot_idx]] <- spot_matrix
   }
   
-  # Combine filtered matrices
-  F.est.all <- do.call(cbind, F.est)
-  F.true.all <- do.call(cbind, F.true)
-  beta.ind.all <- do.call(cbind, beta.ind)
+  return(spot_level_matrices)
+}
+
+evaluate_spot_metrics <- function(spot_F_true, spot_F_est, spot_beta_ind) {
   
-  epsilon <- 1e-10  
-  safe_log <- function(x, base = 2) {
-    x[x < epsilon] <- epsilon
-    return(log(x, base = base))
-  }
-  
-  calc_metrics <- function(i) {
-    P <- F.est.all[i, beta.ind.all[i, ]]
-    Q <- F.true.all[i, beta.ind.all[i, ]]
+  # Function to compute various metrics for a single spot
+  compute_metrics <- function(P, Q) {
     
     # Handle edge cases
     if (length(P) < 2 || length(Q) < 2 || any(is.na(P)) || any(is.na(Q)) || var(P) == 0 || var(Q) == 0) {
-      return(rep(NA, 4))
+      return(c(pearson_corr = NA, cosine_sim = NA, rmse = NA, jsd = NA))
     }
     
-    rmse <- sqrt(mean((P - Q) ^ 2, na.rm = TRUE))
-    pearson_corr <- cor(P, Q, use = "complete.obs")
+    # Calculate Pearson correlation
+    pearson_corr <- cor(P, Q, use = "complete.obs", method =  "spearman")
+
+    
+    # Calculate cosine similarity
     cosine_sim <- 1 - abdiv::cosine_distance(P, Q)
     
-  
+    # Calculate RMSE
+    rmse <- sqrt(mean((P - Q) ^ 2, na.rm = TRUE))
+    
+    # Normalize for Jensen-Shannon Divergence (JSD)
+    epsilon <- 1e-12
     P_norm <- (P + epsilon) / sum(P + epsilon)
     Q_norm <- (Q + epsilon) / sum(Q + epsilon)
-
     
-
+    # Calculate Jensen-Shannon Divergence (JSD)
     jsd <- tryCatch({
       M <- 0.5 * (P_norm + Q_norm)
-      jsd_value <- 0.5 * (sum(P_norm * safe_log(P_norm / M)) + sum(Q_norm * safe_log(Q_norm / M)))
-      max(jsd_value, 0)  # Ensure non-negative value
+      jsd_value <- 0.5 * (sum(P_norm * log(P_norm / M)) + sum(Q_norm * log(Q_norm / M)))
+      if (jsd_value < 0) {
+        jsd_value <- 0
+      }
+      jsd_value
     }, error = function(e) NaN)
     
-    return(c(pearson_corr, cosine_sim, rmse, jsd))
+    return(c(pearson_corr = pearson_corr, cosine_sim = cosine_sim, rmse = rmse, jsd = jsd))
   }
   
-  # Apply the metrics calculation across rows (genes)
-  est.res <- t(vapply(1:nrow(F.est[[1]]), calc_metrics, numeric(4)))
+  # Use lapply to apply compute_metrics over all spots
+  results_list <- sapply(1:length(spot_F_true), function(i) {
+    beta_ind <- spot_beta_ind[[i]]
+    P <- spot_F_true[[i]][beta_ind]
+    Q <- spot_F_est[[i]][beta_ind]
+    
+    # Compute metrics for this spot
+    metrics <- compute_metrics(P, Q)
+    
+    # Optionally print or store results for each spot
+   # print(paste("Spot", i, "Metrics:"))
+   # print(metrics)
+    
+    # Return the metrics for this spot
+    return(metrics)
+  })
   
-  return(est.res)
+  # Return the list of results 
+   results_list = t(results_list)
+  return(results_list)
 }
+
+
+
+
+
+#################
+cellcorr.plot = function(corr.list, beta.type, title = "Cell", ytitle ="Spearman correlation",   plot= TRUE){
+  
+  beta.ind.temp = beta.type>0.05
+  nnum = apply(beta.ind.temp,2,sum)
+  
+  K = length(corr.list)
+  methods = names(corr.list)
+  cell_type = colnames(beta.type)
+  lebel_method = rep(cell_type, c(nnum))
+  
+  cellcorrs <- data.frame(corr = unlist(corr.list),
+                          lable = factor(rep(lebel_method,  K),levels = cell_type),
+                          methods = factor(rep(methods, each = sum(nnum)),levels =  methods ))
+  
+  p1 <- ggplot(cellcorrs,  aes(x =lable, y = corr))+ 
+    geom_boxplot()+ aes(fill = methods)+
+    labs(title = title , x=" ", y= ytitle) + theme_classic()+
+    theme(
+      axis.text.x.bottom = element_text(size = 12,hjust = 1,angle =45), 
+      axis.text.y.left = element_text(size = 12),
+      axis.title.x = element_blank(),##element_text(size = 14,hjust = 0.5), 
+      axis.title.y = element_text(size = 14),
+      plot.title = element_text( size=14,hjust = 0.5),
+      #legend.title = element_blank(), 
+      #legend.position = "none",
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      axis.line = element_line(colour = "black")
+    )
+  
+  if(plot){
+    
+    print(p1)
+  }
+  
+  
+  return(p1)
+  
+}
+
