@@ -90,31 +90,39 @@ mHAG_module <- function(mHAG_est, threshold = 1e-5) {
   return(list(mHVG = mHVG, coeff = coeff, ctHVG = ctHVG))
 }
 
-pval.srt.dot = function(spot_exp, spot_loc, spot_prop,
-                        jointpcc = Joinscores[[i]], size = 3, seck = 4){
+pval.srt.dot = function(spot_exp, spot_loc, spot_prop, seck = 4,
+                        jointpcc = Joinscores[[i]], size = 3){
   
-  genes <- rownames(jointpcc) 
-  ordered_genes <- genes[order(jointpcc, decreasing = TRUE)] 
-  
-  h1gene = c(ordered_genes[1:seck],
-             ordered_genes[(length(ordered_genes)-(seck-1)):length(ordered_genes)])
+  # Get the top genes with the highest jointpcc scores
+  top_genes <- rownames(jointpcc)[order(jointpcc, decreasing = TRUE)[1:seck]]
+  top_jointpcc_scores <- jointpcc[top_genes, , drop = FALSE]
   
   plots = list()
-  for (k in 1:length(h1gene)){
+  for (k in 1:length(top_genes)){
     
-    spot_svg =  spot_exp[h1gene[k],]/max(spot_exp[h1gene[k],])
+    # Normalize the expression of each selected gene
+    spot_svg = spot_exp[top_genes[k],] / max(spot_exp[top_genes[k],])
+    
+    # Create the data frame for plotting
     data_svg = data.frame(x = spot_loc[,1], 
-                          y= spot_loc[,2],
-                          exp  = spot_svg,
+                          y = spot_loc[,2],
+                          exp = spot_svg,
                           prop = spot_prop)
     
     data_svg$color <- ifelse(data_svg$prop == 0, "gray", NA)  
     
+    # Retrieve the jointpcc score for the current gene
+    jointpcc_score <- top_jointpcc_scores[top_genes[k], ]
+    
+    # Generate the plot for each selected gene
     plots[[k]] = ggplot(data = data_svg, aes(x = x, y = y)) +
       geom_point(aes(color = exp), size = size, data = subset(data_svg, prop != 0)) +
       geom_point(color = "gray", size = size, data = subset(data_svg, prop == 0)) +
       scale_color_viridis() +
-      labs(y = "", x = " ", title = as.character(h1gene[k]), color = "", size = "") +
+      # Add gene name as the title only
+      labs(y = "", x = " ", 
+           title = top_genes[k], 
+           color = "", size = "") +
       theme_classic() +
       theme(
         axis.ticks = element_blank(),
@@ -122,11 +130,16 @@ pval.srt.dot = function(spot_exp, spot_loc, spot_prop,
         panel.border = element_blank(),
         axis.line = element_blank(),
         plot.title = element_text(size = 8, hjust = 0.5)
-      )
+      ) +
+      # Add jointpcc and PCC scores below the plot area
+      annotate("text", x = mean(data_svg$x), y = min(data_svg$y) - 0.1 * diff(range(data_svg$y)),
+               label = paste("PCC:", round(jointpcc_score, 2)), 
+               size = 3, color = "black", hjust = 0.5)
   }
   
   return(plots)
 }
+
 
 plot_scatterpie <- function(spot_loc_raw, prop_Sec, use_color, 
                             pie_r = 0.5, circle_r = 0.7, point_size = 6.75) {
