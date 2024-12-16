@@ -4,13 +4,6 @@ This tutorial provides a comprehensive guide on using STged with toy examples, c
 ## Data Source
 The simulation data, real data, and results from both STged and compared methods in this study are available on the Zenodo website: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379872.svg)](https://doi.org/10.5281/zenodo.12539609).
 
-
-### Key Fixes:
-1. Replaced "compated methods" with "compared methods."
-2. Improved phrasing for readability and grammatical correctness.
-3. Fixed the link syntax by ensuring it redirects correctly.
-
-
 ## File Structure and Contents
 The following folders contain all necessary code, data, and documentation to reproduce main and supplementary results in the STged study:
 
@@ -31,7 +24,7 @@ Detailed tutorials provide step-by-step guidance on running analyses on simulate
 ### Simulation Studies
 These tutorials demonstrate STged’s functionality on simulated datasets, providing insight into its performance in controlled settings.
 - **[seqFISH+ Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_FISH+.html)**: A demo showcasing STged applied to seqFISH+ data simulations.
-- **[MERFISH Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_merfish.html)**: A tutorial on applying STged to MERFISH simulated data.
+- **[MERFISH Data Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/Simulation/Demo-Simulation_result_MERFISH.html)**: A tutorial on applying STged to MERFISH simulated data.
 
 ### Real Data Studies
 Real data examples illustrate STged’s capabilities in practical applications, focusing on human PDAC tissue and mouse kidney tissue.
