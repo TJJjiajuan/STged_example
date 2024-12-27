@@ -28,8 +28,7 @@ These tutorials demonstrate STged’s functionality on simulated datasets, provi
 
 ### Real Data Studies 
 Real data examples illustrate STged’s capabilities in practical applications, focusing on human PDAC tissue and mouse kidney tissue.
-- **[mHVG/ctHVG Module Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDAC_STged_mHVG-_20celltypes.html)
-**: Analyzing mHVG and ctHVG in human PDAC tissue, focusing on identifying highly variable genes linked to cell types.
+- **[mHVG/ctHVG Module Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDAC_STged_mHVG-_20celltypes.html)**: Analyzing mHVG and ctHVG in human PDAC tissue, focusing on identifying highly variable genes linked to cell types.
 - **[Cell Type Subpopulation Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDACA_STged_subpopulation.html)**: Identifying and analyzing cell subpopulations within human PDAC tissue.
 - **[Cell-Cell Communication Analysis](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_PDAC_STged_CC_20celltypes.html)**: Analyzing cell-cell communication dynamics in human PDAC tissue.
 - **[Gene Expression Program Module](https://htmlpreview.github.io/?https://github.com/TJJjiajuan/STged_example/blob/main/demo_files/demo_kidney_STged_downanalysis.html)**: Gene expression analysis of mouse kidney tissue, showcasing spatial gene expression programs.
