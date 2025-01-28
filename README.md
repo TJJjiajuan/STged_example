@@ -1,4 +1,4 @@
-# STged Tutorial and Example Guide  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379873.svg)](https://doi.org/10.5281/zenodo.14379873).
+# STged Tutorial and Example Guide  [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379873.svg)](https://doi.org/10.5281/zenodo.14379873)
 This tutorial provides a comprehensive guide on using STged with toy examples, covering both simulation and real data analyses.
 
 ## Data Source
