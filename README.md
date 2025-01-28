@@ -1,9 +1,9 @@
-# STged Tutorial and Example Guide [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379872.svg)] 
+# STged Tutorial and Example Guide [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379873.svg)] 
 This tutorial provides a comprehensive guide on using STged with toy examples, covering both simulation and real data analyses.
 
 ## Data Source
-The simulation data, real data, and results from both STged and compared methods in this study are available on the Zenodo website: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379872.svg)](https://doi.org/10.5281/zenodo.12539609).
-
+The simulation data, real data, and results from both STged and compared methods in this study are available on the Zenodo website: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14379872.svg)](https://doi.org/10.5281/zenodo.14379873).
+14379873
 ## File Structure and Contents
 The following folders contain all necessary code, data, and documentation to reproduce main and supplementary results in the STged study:
 
